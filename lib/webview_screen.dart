@@ -175,7 +175,7 @@ class _WebviewScreenState extends State<WebviewScreen> {
         return false;
       },
       child: Scaffold(
-        appBar: widget.appBar ?? AppBar(),
+        appBar: widget.appBar,
         body: isGranted
             ? InAppWebView(
                 key: webViewKey,
