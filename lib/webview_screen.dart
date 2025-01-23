@@ -15,7 +15,8 @@ class DojahKYC {
   final Map<String, dynamic>? metaData;
   final Map<String, dynamic>? govData;
   final Map<String, dynamic>? config;
-  final Function(dynamic)? onCloseCallback;
+  final bool Function()? onCloseCallback;
+  final AppBar? appBar;
 
   DojahKYC({
     required this.appId,
@@ -28,6 +29,7 @@ class DojahKYC {
     this.amount,
     this.referenceId,
     this.onCloseCallback,
+    this.appBar,
   });
 
   Future<void> open(BuildContext context,
@@ -56,6 +58,8 @@ class DojahKYC {
           error: (error) {
             onError!(error);
           },
+          onCloseCallback: onCloseCallback,
+          appBar: appBar,
         ),
       ),
     );
@@ -75,6 +79,8 @@ class WebviewScreen extends StatefulWidget {
   final Function(dynamic) success;
   final Function(dynamic) error;
   final Function(dynamic) close;
+  final bool Function()? onCloseCallback;
+  final AppBar? appBar;
   const WebviewScreen({
     Key? key,
     required this.appId,
@@ -89,6 +95,8 @@ class WebviewScreen extends StatefulWidget {
     required this.success,
     required this.error,
     required this.close,
+    this.onCloseCallback,
+    this.appBar,
   }) : super(key: key);
 
   @override
@@ -108,6 +116,7 @@ class _WebviewScreenState extends State<WebviewScreen> {
 
   bool isGranted = false;
   bool isLocationGranted = false;
+  Widget? appBar;
 
   bool isLocationPermissionGranted = false;
   dynamic locationData;
@@ -156,127 +165,137 @@ class _WebviewScreenState extends State<WebviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: isGranted
-          ? InAppWebView(
-              key: webViewKey,
-              initialSettings: options,
-              initialData: InAppWebViewInitialData(
-                baseUrl: WebUri("https://widget.dojah.io"),
-                historyUrl: WebUri("https://widget.dojah.io"),
-                mimeType: "text/html",
-                data: """
-                      <html lang="en">
-                        <head>
-                            <meta charset="UTF-8">
-                                <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, shrink-to-fit=1"/>
-                              
-                            <title>Dojah Inc.</title>
-                        </head>
-                        <body>
-                  
-   
-                       <script src="https://widget.dojah.io/widget.js"></script>
+    return WillPopScope(
+      onWillPop: () async {
+        if (widget.onCloseCallback != null && widget.onCloseCallback!()) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pop(context);
+        }
+        return false;
+      },
+      child: Scaffold(
+        appBar: widget.appBar ?? AppBar(),
+        body: isGranted
+            ? InAppWebView(
+                key: webViewKey,
+                initialSettings: options,
+                initialData: InAppWebViewInitialData(
+                  baseUrl: WebUri("https://widget.dojah.io"),
+                  historyUrl: WebUri("https://widget.dojah.io"),
+                  mimeType: "text/html",
+                  data: """
+                        <html lang="en">
+                          <head>
+                              <meta charset="UTF-8">
+                                  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, shrink-to-fit=1"/>
+                                
+                              <title>Dojah Inc.</title>
+                          </head>
+                          <body>
+                    
+         
+                         <script src="https://widget.dojah.io/widget.js"></script>
+      
+                        
+                          <script>
+                                    const options = {
+                                        app_id: "${widget.appId}",
+                                        p_key: "${widget.publicKey}",
+                                        type: "${widget.type}",
+                                        reference_id: "${widget.referenceId}",
+                                        amount: "${widget.amount}",
+                                        config: ${json.encode(widget.config ?? {})},
+                                        user_data: ${json.encode(widget.userData ?? {})},
+                                        gov_data: ${json.encode(widget.govData ?? {})},
+                                        location: ${json.encode(locationObject ?? {})},
+                                        metadata: ${json.encode(widget.metaData ?? {})},
+                                        onSuccess: function (response) {
+                                        window.flutter_inappwebview.callHandler('onSuccessCallback', response)
+                                        },
+                                        onError: function (err) {
+                                          window.flutter_inappwebview.callHandler('onErrorCallback', error)
+                                        },
+                                        onClose: function () {
+                                          window.flutter_inappwebview.callHandler('onCloseCallback', 'close')
+                                        }
+                                    }
+                                      const connect = new Connect(options);
+                                      connect.setup();
+                                      connect.open();
+                                </script>
+                          </body>
+                        </html>
+                    """,
+                ),
+                initialUrlRequest: URLRequest(
+                  url: WebUri("https://widget.dojah.io"),
+                ),
+                pullToRefreshController: pullToRefreshController,
+                onWebViewCreated: (controller) {
+                  _webViewController = controller;
 
-                      
-                        <script>
-                                  const options = {
-                                      app_id: "${widget.appId}",
-                                      p_key: "${widget.publicKey}",
-                                      type: "${widget.type}",
-                                      reference_id: "${widget.referenceId}",
-                                      amount: "${widget.amount}",
-                                      config: ${json.encode(widget.config ?? {})},
-                                      user_data: ${json.encode(widget.userData ?? {})},
-                                      gov_data: ${json.encode(widget.govData ?? {})},
-                                      location: ${json.encode(locationObject ?? {})},
-                                      metadata: ${json.encode(widget.metaData ?? {})},
-                                      onSuccess: function (response) {
-                                      window.flutter_inappwebview.callHandler('onSuccessCallback', response)
-                                      },
-                                      onError: function (err) {
-                                        window.flutter_inappwebview.callHandler('onErrorCallback', error)
-                                      },
-                                      onClose: function () {
-                                        window.flutter_inappwebview.callHandler('onCloseCallback', 'close')
-                                      }
-                                  }
-                                    const connect = new Connect(options);
-                                    connect.setup();
-                                    connect.open();
-                              </script>
-                        </body>
-                      </html>
-                  """,
-              ),
-              initialUrlRequest: URLRequest(
-                url: WebUri("https://widget.dojah.io"),
-              ),
-              pullToRefreshController: pullToRefreshController,
-              onWebViewCreated: (controller) {
-                _webViewController = controller;
-
-                _webViewController.addJavaScriptHandler(
-                  handlerName: 'onSuccessCallback',
-                  callback: (response) {
-                    widget.success(response);
-                  },
-                );
-
-                _webViewController.addJavaScriptHandler(
-                  handlerName: 'onCloseCallback',
-                  callback: (response) {
-                    widget.close(response);
-                    // if (response.first == 'close') {
-                    //   Navigator.pop(context);
-                    // }
-                  },
-                );
-
-                _webViewController.addJavaScriptHandler(
-                  handlerName: 'onErrorCallback',
-                  callback: (error) {
-                    widget.error(error);
-                  },
-                );
-              },
-              onPermissionRequest: Platform.isAndroid
-                  ? null
-                  : (controller, origin) async {
-                      return PermissionResponse(
-                        resources: [],
-                        action: PermissionResponseAction.GRANT,
-                      );
+                  _webViewController.addJavaScriptHandler(
+                    handlerName: 'onSuccessCallback',
+                    callback: (response) {
+                      widget.success(response);
                     },
-              onLoadStop: (controller, url) {
-                pullToRefreshController.endRefreshing();
-              },
-              onReceivedError: (controller, url, code) {
-                pullToRefreshController.endRefreshing();
-              },
-              onProgressChanged: (controller, progress) {
-                if (progress == 100) {
+                  );
+
+                  _webViewController.addJavaScriptHandler(
+                    handlerName: 'onCloseCallback',
+                    callback: (response) {
+                      widget.close(response);
+                      // if (response.first == 'close') {
+                      //   Navigator.pop(context);
+                      // }
+                    },
+                  );
+
+                  _webViewController.addJavaScriptHandler(
+                    handlerName: 'onErrorCallback',
+                    callback: (error) {
+                      widget.error(error);
+                    },
+                  );
+                },
+                onPermissionRequest: Platform.isAndroid
+                    ? null
+                    : (controller, origin) async {
+                        return PermissionResponse(
+                          resources: [],
+                          action: PermissionResponseAction.GRANT,
+                        );
+                      },
+                onLoadStop: (controller, url) {
                   pullToRefreshController.endRefreshing();
-                }
-                setState(() {
-                  this.progress = progress / 100;
-                });
-              },
-              androidOnPermissionRequest:
-                  (controller, origin, resources) async {
-                return PermissionRequestResponse(
-                    resources: resources,
-                    action: PermissionRequestResponseAction.GRANT);
-              },
-               androidOnGeolocationPermissionsShowPrompt:
-                  (controller, origin) async {
-                return GeolocationPermissionShowPromptResponse(
-                    allow: true, origin: origin, retain: true);
-              },
-              onConsoleMessage: (controller, consoleMessage) {},
-            )
-          : const Center(child: CircularProgressIndicator()),
+                },
+                onReceivedError: (controller, url, code) {
+                  pullToRefreshController.endRefreshing();
+                },
+                onProgressChanged: (controller, progress) {
+                  if (progress == 100) {
+                    pullToRefreshController.endRefreshing();
+                  }
+                  setState(() {
+                    this.progress = progress / 100;
+                  });
+                },
+                androidOnPermissionRequest:
+                    (controller, origin, resources) async {
+                  return PermissionRequestResponse(
+                      resources: resources,
+                      action: PermissionRequestResponseAction.GRANT);
+                },
+                androidOnGeolocationPermissionsShowPrompt:
+                    (controller, origin) async {
+                  return GeolocationPermissionShowPromptResponse(
+                      allow: true, origin: origin, retain: true);
+                },
+                onConsoleMessage: (controller, consoleMessage) {},
+              )
+            : const Center(child: CircularProgressIndicator()),
+      ),
     );
   }
 }
