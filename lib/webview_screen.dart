@@ -15,7 +15,7 @@ class DojahKYC {
   final Map<String, dynamic>? metaData;
   final Map<String, dynamic>? govData;
   final Map<String, dynamic>? config;
-  final bool Function()? onCloseCallback;
+  final Future<bool> Function()? onCloseCallback;
   final AppBar? appBar;
 
   DojahKYC({
@@ -79,7 +79,7 @@ class WebviewScreen extends StatefulWidget {
   final Function(dynamic) success;
   final Function(dynamic) error;
   final Function(dynamic) close;
-  final bool Function()? onCloseCallback;
+  final Future<bool> Function()? onCloseCallback;
   final AppBar? appBar;
   const WebviewScreen({
     Key? key,
@@ -167,8 +167,9 @@ class _WebviewScreenState extends State<WebviewScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        if (widget.onCloseCallback != null && widget.onCloseCallback!()) {
-          Navigator.pop(context);
+        if (widget.onCloseCallback != null) {
+          bool shouldClose = await widget.onCloseCallback!();
+          if (shouldClose) Navigator.pop(context);
         } else {
           Navigator.pop(context);
         }

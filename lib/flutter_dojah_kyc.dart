@@ -13,7 +13,7 @@ class DojahKYC {
   final Map<String, dynamic>? metaData;
   final Map<String, dynamic>? govData;
   final Map<String, dynamic>? config;
-  final bool Function()? onCloseCallback;
+  final Future<bool> Function()? onCloseCallback;
   final AppBar? appBar;
 
   DojahKYC({
